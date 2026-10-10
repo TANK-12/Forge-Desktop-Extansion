@@ -55,6 +55,8 @@ def caps(registry: dict, os_name: str, runtime_cut: dict | None = None) -> dict:
         "hide_widgets": sorted(widgets),
         "hide_settings": sorted(settings),
         "why": {**settings},
+        # how this OS's host shows the page (platforms.<os>.page)
+        "page": dict(entry.get("page", {})),
         "help": {
             key: texts.get(os_name, texts.get("*"))
             for key, texts in registry.get("help", {}).items()

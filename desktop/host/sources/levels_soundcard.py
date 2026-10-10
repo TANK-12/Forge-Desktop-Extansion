@@ -54,6 +54,21 @@ def find_loopback(sc=None):
         return loops[0] if loops else None
 
 
+def join_com() -> Callable[[], None]:
+    """Windows' sound (WASAPI) is COM, and every thread that uses COM must
+    join it first. soundcard joins only in the thread that imported it, so
+    the reader thread joins here, or its calls fail with "CoInitialize has
+    not been called" and the visualiser never gets a level. Answers how to
+    leave again (nothing to do off Windows or when joining failed)."""
+    if sys.platform != "win32":
+        return lambda: None
+    import ctypes
+
+    ole32 = getattr(ctypes, "WinDLL")("ole32")  # Windows only
+    hr = ole32.CoInitializeEx(None, 0)  # COINIT_MULTITHREADED, as soundcard
+    return ole32.CoUninitialize if hr >= 0 else (lambda: None)
+
+
 def available() -> str | None:
     try:
         mic = find_loopback()
@@ -149,7 +164,9 @@ class Levels:
         n, fps = self.shape
         gain = Gain()
         silent = False
+        leave = lambda: None  # noqa: E731
         try:
+            leave = join_com()
             mic = self.open_mic()
             if mic is None:
                 self.push({"type": "levels-off", "reason": "no loopback sound device"})
@@ -171,6 +188,8 @@ class Levels:
             self.push(
                 {
                     "type": "levels-off",
-                    "reason": f"the sound stopped ({type(e).__name__})",
+                    "reason": f"the sound stopped ({type(e).__name__}: {e})",
                 }
             )
+        finally:
+            leave()

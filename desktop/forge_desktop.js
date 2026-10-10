@@ -165,6 +165,7 @@
       if (!W || this.mounted) return;
       this.mounted = true;
       W.cols = 24;
+      W.bounded = true; // one screen that never scrolls: cards stay on it
       W.store = {
         load: () => (window.FORGE_DESKTOP || {}).layout || null,
         save: (data) => send({ save: data }),
@@ -192,8 +193,12 @@
       else {
         const parts = [...document.querySelectorAll("#widgets:not([hidden]) .wg, #widgets:not([hidden]) .wg-dots, #wg-ring.on")];
         // two or more pages: the whole widget area, so a two-finger swipe
-        // over bare desktop turns the page (three fingers are GNOME's)
-        if (this.mounted && W.pages.length > 1 && !$("widgets").hidden) parts.push($("widgets"));
+        // over bare desktop turns the page (three fingers are GNOME's). Not
+        // where the click area also cuts what is drawn (Windows): there the
+        // whole area would be drawn, and wherever the see-through fails the
+        // desktop would sit behind a grey wall; the page dots still turn pages
+        const cuts = !!(CAPS.page || {}).region_cuts_drawing;
+        if (!cuts && this.mounted && W.pages.length > 1 && !$("widgets").hidden) parts.push($("widgets"));
         if (this.widgetsOn() && this.theme.desktop_edit_button !== false) parts.push($("dk-edit"));
         if (this.theme.desktop_edit_button !== false) parts.push($("dk-settings"));
         rects = parts.map((n) => n.getBoundingClientRect()).filter((r) => r.width && r.height)

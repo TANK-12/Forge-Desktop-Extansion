@@ -1,4 +1,4 @@
-Forge Desktop 0.1.0 for Linux with GNOME 48 to 51 or Hyprland (any CPU; uses the system's Python 3)
+Forge Desktop 0.1.1 for Linux with GNOME 48 to 51 or Hyprland (any CPU; uses the system's Python 3)
 =================================================================
 
 Particles, widgets (clock, system, music player, notes and more) and a

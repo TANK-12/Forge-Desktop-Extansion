@@ -65,6 +65,9 @@ class WindowsShell(WebviewShell):
         self.command = command
         self.hwnds: dict[str, int] = {}
         self.styled: set[str] = set()
+        # pages whose on_loaded has run to the end: only these may be shown
+        self.ready: set[str] = set()
+        self.on_form = _on_form
         self.front = False
         self.marker = 0
         self.seen_monitors: list = []
@@ -110,32 +113,73 @@ class WindowsShell(WebviewShell):
                 self.w, hwnd, self.layout, where.x, where.y, where.w, where.h
             )
             self.log(f"{page.key}: behind the icons ({self.layout.kind}): {placed}")
+            self.ready.add(page.key)
             return
-        self.w.see_through(hwnd)
-
-        def black():
-            from System.Drawing import Color  # type: ignore  # Windows only
-
-            window.native.BackColor = Color.Black
-
-        _on_form(window, black)
-        self.set_rects(
-            page, core.particles.clean_rects(page.rects, page.width, page.height)
-        )
-        self.w.set_pos(
-            hwnd,
-            win_desktop.HWND_BOTTOM,
-            where.x,
-            where.y,
-            where.w,
-            where.h,
-            win_desktop.SWP_NOACTIVATE,
-        )
-        self.w.show(hwnd, win_desktop.SW_SHOWNOACTIVATE)
+        self.style_widgets(page, window, hwnd, where)
+        self.ready.add(page.key)
         if first:
             # a click raises the window over every app: put it back at once
             window.native.Activated += lambda *_: self.place_widgets()
         self.place_widgets()
+
+    def style_widgets(self, page: core.Page, window, hwnd: int, where) -> None:
+        """See-through, clipped to the cards, then shown: each step on its
+        own, so one that fails on some PC cannot leave the window unclipped
+        in the Windows grey pywebview gives its form (a grey wall over the
+        whole desktop, seen on the first real Windows install). The log says
+        how each step went."""
+        said: list[str] = []
+
+        def step(name: str, fn):
+            try:
+                result = fn()
+                said.append(f"{name} {result}")
+                return result
+            except Exception as e:
+                said.append(f"{name} failed ({e!r})")
+                return None
+
+        hr = step("dwm", lambda: self.w.see_through(hwnd))
+        # no per-pixel alpha from DWM: Windows' colour key makes the black
+        # form see-through instead (cards lose their glass, nothing worse)
+        key = not (isinstance(hr, int) and hr >= 0)
+        step("paint", lambda: self.paint(window, key))
+        rects = core.particles.clean_rects(page.rects, page.width, page.height)
+        step("region", lambda: self.set_rects(page, rects) or len(rects))
+        step(
+            "place",
+            lambda: self.w.set_pos(
+                hwnd,
+                win_desktop.HWND_BOTTOM,
+                where.x,
+                where.y,
+                where.w,
+                where.h,
+                win_desktop.SWP_NOACTIVATE,
+            ),
+        )
+        step("show", lambda: self.w.show(hwnd, win_desktop.SW_SHOWNOACTIVATE))
+        self.log(f"{page.key}: " + "; ".join(said))
+
+    def paint(self, window, key: bool) -> str:
+        """Black under the page, which DWM's alpha (or the colour key) shows
+        as see-through: the form, and the WebView2 control in case it paints
+        its own background rather than the form's."""
+
+        def black():
+            from System.Drawing import Color  # type: ignore  # Windows only
+
+            form = window.native
+            form.BackColor = Color.Black
+            control = getattr(form, "webview", None)
+            if control is not None:
+                control.BackColor = Color.Black
+                control.DefaultBackgroundColor = Color.Transparent
+            if key:
+                form.TransparencyKey = Color.Black
+
+        self.on_form(window, black)
+        return "colour key" if key else "black"
 
     def _form_closing(self, sender, args) -> None:
         """WinForms asks every window before Windows signs out, restarts or
@@ -151,6 +195,7 @@ class WindowsShell(WebviewShell):
     def on_closed(self, page: core.Page, window) -> None:
         self.hwnds.pop(page.key, None)
         self.styled.discard(page.key)
+        self.ready.discard(page.key)
 
     def set_rects(self, page: core.Page, rects) -> None:
         hwnd = self.hwnds.get(page.key)
@@ -177,6 +222,8 @@ class WindowsShell(WebviewShell):
         hwnd = self.hwnds.get(page.key)
         if window is None or not hwnd:
             return
+        if not resting and page.key not in self.ready:
+            return  # on_loaded shows it once it is styled and clipped
 
         def apply():
             if resting:
@@ -187,7 +234,7 @@ class WindowsShell(WebviewShell):
                 self.w.show(hwnd, win_desktop.SW_SHOWNOACTIVATE)
 
         try:
-            _on_form(window, apply)
+            self.on_form(window, apply)
         except Exception as e:
             self.log(f"rest {page.key}: {e!r}")
 
@@ -250,9 +297,7 @@ class WindowsShell(WebviewShell):
             for key, hwnd in list(self.hwnds.items())
             if key.startswith("scenery") and not self.w.is_window(hwnd)
         ]
-        if gone or (
-            self.layout.progman and not self.w.is_window(self.layout.progman)
-        ):
+        if gone or (self.layout.progman and not self.w.is_window(self.layout.progman)):
             # Explorer restarted or made its desktop afresh, and our scenery
             # went with its windows: find the place again and reopen
             self.layout = win_desktop.find_layout(self.w)

@@ -134,6 +134,9 @@
     "windows": {
       "label": "Windows",
       "host": "windows",
+      "page": {
+        "region_cuts_drawing": true
+      },
       "providers": {
         "stats": [
           "psutil"
@@ -205,5 +208,6 @@
     "notify_send": "notify-send",
     "toast": "a Windows notification through PowerShell",
     "osascript": "a macOS notification through osascript"
-  }
+  },
+  "page_about": "platforms.<os>.page: how that OS's host shows the page, passed to it as caps.page. region_cuts_drawing: the widgets window's click area (a Win32 window region) is also all that is drawn, so the page reports only the cards, never bare desktop."
 }

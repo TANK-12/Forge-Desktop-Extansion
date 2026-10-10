@@ -528,10 +528,11 @@ class Win32:
             self.gdi.DeleteObject(part)
         self.u.SetWindowRgn(hwnd, rgn, True)  # the system owns the region now
 
-    def see_through(self, hwnd: int) -> None:
+    def see_through(self, hwnd: int) -> int:
         """Per-pixel transparency for a WebView2 form: DWM blur-behind with
         an empty region (hypr-for-windows see_through, the way Tauri's tao
-        does it); the form itself is painted black by the caller."""
+        does it); the form itself is painted black by the caller. Answers
+        DWM's HRESULT (negative: it failed)."""
         wt = self.wt
 
         class BlurBehind(self.ctypes.Structure):
@@ -544,11 +545,12 @@ class Win32:
 
         rgn = self.gdi.CreateRectRgn(0, 0, -1, -1)
         bb = BlurBehind(0x1 | 0x2, True, rgn, False)
-        self.dwm.DwmEnableBlurBehindWindow(wt.HWND(hwnd), self.ctypes.byref(bb))
+        hr = self.dwm.DwmEnableBlurBehindWindow(wt.HWND(hwnd), self.ctypes.byref(bb))
         self.gdi.DeleteObject(rgn)
         ex = self.ex_style(hwnd)
         if ex & WS_EX_LAYERED:  # layered with no attributes draws nothing
             self.set_long(hwnd, GWL_EXSTYLE, ex & ~WS_EX_LAYERED)
+        return int(hr)
 
     def tool_window(self, hwnd: int) -> None:
         """No taskbar button and no Alt+Tab entry."""

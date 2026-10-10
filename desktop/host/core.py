@@ -130,6 +130,7 @@ class Core:
         self.levels_obj = None
         self.levels_on: set[str] = set()
         self.levels_at = 0.0
+        self.levels_off = ""  # the last reason the sound reader gave up
         self.stats_reader = None
         self.awake_until = 0.0
         self.power = {"on_battery": False, "battery": None, "low": False}
@@ -424,6 +425,13 @@ class Core:
             with self.lock:
                 only = set(self.levels_on)
             self.tell({"levels": event.get("v")}, only=only, slot="levels")
+        elif event.get("type") == "levels-off":
+            # the page asks again every few seconds: say each reason once
+            reason = str(event.get("reason", ""))
+            log = getattr(self.shell, "log", None)
+            if reason != self.levels_off and callable(log):
+                log(f"visualiser has no sound: {reason}")
+            self.levels_off = reason
 
     # --- players ---------------------------------------------------------------
     def players(self) -> None:

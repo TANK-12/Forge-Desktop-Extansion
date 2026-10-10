@@ -133,26 +133,65 @@
       i.h = Math.max(mh, Math.min(8, Math.round(i.h) || mh));
       i.x = Math.max(0, Math.min(this.cols - i.w, Math.round(i.x) || 0));
       i.y = Math.max(0, Math.round(i.y) || 0);
+      const rows = this.rows();
+      if (rows) {
+        i.h = Math.max(mh, Math.min(i.h, rows));
+        i.y = Math.max(0, Math.min(i.y, rows - i.h));
+      }
       return i;
     },
+    // How many rows the widget area shows when the page sets W.bounded (the
+    // desktop: one screen that never scrolls, so a card dragged, resized or
+    // pushed past its bottom edge was lost off the screen). 0 = no limit:
+    // the hub's widget page scrolls, and nothing is laid out yet.
+    rows() {
+      const grid = this.bounded && this.root ? this.root.querySelector(".wg-grid") : null;
+      if (!grid || !this.root.clientHeight) return 0;
+      const rh = (parseFloat(getComputedStyle(this.root).getPropertyValue("--widget-row")) || 64) + GAP;
+      const top = grid.getBoundingClientRect().top - this.root.getBoundingClientRect().top;
+      return Math.max(1, Math.floor((this.root.clientHeight - top + GAP) / rh));
+    },
     // the first free place a w×h card fits, row by row from the top left, so
-    // added widgets fill the gaps instead of piling up in one column
-    spot(items, w, h) {
+    // added widgets fill the gaps instead of piling up in one column; with
+    // `rows` only places inside that many rows count (null when none is free)
+    spot(items, w, h, rows = 0) {
       const bottom = items.reduce((m, i) => Math.max(m, i.y + i.h), 0);
-      for (let y = 0; y <= bottom; y++) {
+      const last = rows ? rows - h : bottom;
+      for (let y = 0; y <= last; y++) {
         for (let x = 0; x + w <= this.cols; x++) {
           const probe = { x, y, w, h };
           if (!items.some((i) => this.overlaps(i, probe))) return { x, y };
         }
       }
-      return { x: 0, y: bottom };
+      return rows ? null : { x: 0, y: bottom };
+    },
+    // a bounded area (the desktop) that shrank, or a layout from before
+    // W.bounded, can leave cards below the bottom edge: move each to the first
+    // free place on screen. True when something moved (render again).
+    unhide(items) {
+      const rows = this.rows();
+      const lost = rows ? items.filter((i) => i.y + i.h > rows) : [];
+      let moved = false;
+      for (const i of lost) {
+        const others = items.filter((o) => o !== i && !(lost.includes(o) && o.y + o.h > rows));
+        const at = this.spot(others, i.w, Math.min(i.h, rows), rows);
+        if (!at) continue;
+        Object.assign(i, at, { h: Math.min(i.h, rows) });
+        moved = true;
+      }
+      if (moved) this.save();
+      return moved;
     },
     overlaps(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; },
     // `moved` keeps its place; the others step down until nothing overlaps
     settle(items, moved) {
       const placed = moved ? [moved] : [];
+      const rows = this.rows();
       items.filter((i) => i !== moved).sort((a, b) => a.y - b.y || a.x - b.x).forEach((i) => {
         while (placed.some((p) => this.overlaps(p, i))) i.y++;
+        // stepped past the bottom of a bounded area: the first free place
+        // inside it instead (a full page leaves it where it is)
+        if (rows && i.y + i.h > rows) Object.assign(i, this.spot(placed, i.w, i.h, rows) || {});
         placed.push(i);
       });
     },
@@ -170,7 +209,8 @@
       const [w0, h] = spec.size || [3, 2];
       const w = Math.round((w0 * this.cols) / COLS);
       const item = this.fit({ id: uid(), kind, x: 0, y: 0, w, h });
-      Object.assign(item, this.spot(items, item.w, item.h));
+      const rows = this.rows();
+      Object.assign(item, (rows && this.spot(items, item.w, item.h, rows)) || this.spot(items, item.w, item.h));
       items.push(item);
       this.save();
       this.render();
@@ -318,6 +358,7 @@
       items.forEach((item) => grid.append(this.card(item, grid)));
       if (!items.length) grid.append(el("div", "wg-empty", this.editing ? "Add a widget from the menu above." : "An empty page: ✎ Edit adds widgets."));
       root.append(head, grid);
+      if (!this.editing && this.unhide(items)) return this.render();
       this.tick();
       document.dispatchEvent(new CustomEvent("forge-widgets-layout"));
     },
