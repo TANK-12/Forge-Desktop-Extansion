@@ -1,0 +1,209 @@
+{
+  "about": "Forge Desktop on each operating system (Relay task 130, 2026-10-09). Per OS: the host that shows the page, where each kind of data comes from (tried in order; the first that works wins) and what is cut there, each with its reason. A feature is cut when the OS entry cuts it or when none of its providers works on the machine (no loopback sound device on a Mac, say); a cut feature's widgets and settings are hidden by the page and the settings window (desktop/host/registry.py turns this into the page's caps). Adding an OS or a provider: one module in desktop/host/sources/ plus one line here.",
+  "features": {
+    "stats": {
+      "label": "CPU, memory, network and drives",
+      "widgets": [
+        "system",
+        "activity",
+        "disk",
+        "network"
+      ]
+    },
+    "players": {
+      "label": "Music players",
+      "widgets": [
+        "player",
+        "nowplaying"
+      ]
+    },
+    "notify": {
+      "label": "Alarm and timer notifications"
+    },
+    "levels": {
+      "label": "The music visualiser",
+      "widgets": [
+        "visualiser"
+      ],
+      "settings": [
+        "desktop_visualiser",
+        "desktop_visualiser_size",
+        "desktop_visualiser_fps",
+        "visualiser_gain",
+        "visualiser_opacity",
+        "visualiser_colours"
+      ]
+    },
+    "scenery": {
+      "label": "Particles and the visualiser behind the desktop icons",
+      "settings": [
+        "desktop_particles",
+        "desktop_particle_kind",
+        "desktop_particle_amount",
+        "desktop_particle_fps",
+        "desktop_visualiser",
+        "desktop_visualiser_size",
+        "desktop_visualiser_fps"
+      ]
+    }
+  },
+  "settings_groups": [
+    [
+      "Home screen",
+      "Particles on the desktop",
+      [
+        "desktop_particles"
+      ]
+    ],
+    [
+      "On the desktop",
+      "On the desktop: particles, widgets, visualiser",
+      null
+    ],
+    [
+      "Music and visualiser",
+      "The visualiser's look",
+      [
+        "visualiser_gain",
+        "visualiser_opacity",
+        "visualiser_colours"
+      ]
+    ],
+    [
+      "Widgets",
+      "Widgets",
+      [
+        "widget_look",
+        "weather_units",
+        "alarm_sound",
+        "breath_seconds"
+      ]
+    ]
+  ],
+  "first_run": {
+    "desktop_particles": true,
+    "desktop_widgets": true
+  },
+  "help_about": "Per setting, the help text the settings window shows in place of forge_theme's, which is written for Forge on Linux (GNOME, Hyprland, the extension, Forge's pop-out). Each entry: OS name (or * for every OS) -> text; an OS with no text keeps forge_theme's.",
+  "help": {
+    "desktop_particles": {
+      "windows": "The same particles on your normal desktop, behind every window; clicks go straight through.",
+      "macos": "The same particles on your normal desktop, behind every window; clicks go straight through."
+    },
+    "desktop_widgets": {
+      "*": "Your widgets on the normal desktop, behind every window, with their own layout. The Widgets button in the corner of the desktop adds, moves and removes them."
+    },
+    "desktop_all_screens": {
+      "*": "With more than one screen plugged in, each one shows the particles, the visualiser and its own widgets behind its windows. Off keeps them to the main screen."
+    },
+    "desktop_edit_button": {
+      "*": "A small button at the bottom right of the desktop that starts editing the desktop's widgets. Off hides it; Edit widgets at the top of these settings still starts editing.",
+      "linux": "A small button at the bottom right of the desktop that starts editing the desktop's widgets. Off hides it; Edit widgets at the top of these settings, or the GNOME extension's top bar menu, still starts editing."
+    },
+    "desktop_visualiser": {
+      "windows": "Draws whatever the computer is playing on the normal desktop, behind every window. Listens to the sound card's own output only while something draws.",
+      "macos": "Draws whatever the Mac is playing on the desktop. A Mac can't listen to its own sound by itself: it needs a loopback sound device such as BlackHole set up, and without one this stays hidden."
+    },
+    "desktop_particle_fps": {
+      "*": "How many times a second they move. 30 looks smooth and uses about half the power of 60."
+    }
+  },
+  "partial_about": "Per OS, what works only in part there, as plain sentences for that OS's README (registry.change_list prints them after where the data comes from).",
+  "platforms": {
+    "linux": {
+      "label": "Linux",
+      "host": "particles.py",
+      "providers": {
+        "stats": [
+          "forge_sysinfo"
+        ],
+        "players": [
+          "mpris"
+        ],
+        "levels": [
+          "cava"
+        ],
+        "notify": [
+          "notify_send"
+        ]
+      },
+      "cut": {},
+      "cut_settings": {},
+      "partial": []
+    },
+    "windows": {
+      "label": "Windows",
+      "host": "windows",
+      "providers": {
+        "stats": [
+          "psutil"
+        ],
+        "players": [
+          "gsmtc"
+        ],
+        "levels": [
+          "soundcard"
+        ],
+        "notify": [
+          "toast"
+        ]
+      },
+      "cut": {},
+      "cut_settings": {
+        "desktop_panel_icon": "a button in GNOME's top bar; on Windows the settings open from the corner button or the Start menu",
+        "desktop_in_overview": "GNOME's overview only",
+        "desktop_on_hyprland": "Hyprland (Linux) only"
+      },
+      "partial": [
+        "Music players: no volume, no Go to player button and no album art; Windows' media controls do not give them.",
+        "System widgets: no temperatures, fans, graphics card or Wi-Fi name.",
+        "The particles never thin out part way (windows half over the desktop, a busy graphics card): they run in full, or rest while the desktop is covered.",
+        "One wallpaper for every screen; a wallpaper set to span the screens fills each one instead."
+      ]
+    },
+    "macos": {
+      "label": "macOS",
+      "host": "macos",
+      "providers": {
+        "stats": [
+          "psutil"
+        ],
+        "players": [
+          "applescript"
+        ],
+        "levels": [
+          "soundcard"
+        ],
+        "notify": [
+          "osascript"
+        ]
+      },
+      "cut": {},
+      "cut_settings": {
+        "desktop_panel_icon": "a button in GNOME's top bar; on a Mac the settings open from the corner button or the app itself",
+        "desktop_in_overview": "GNOME's overview only",
+        "desktop_on_hyprland": "Hyprland (Linux) only",
+        "desktop_particles_rest": "on a Mac the page pauses by itself while windows cover the desktop"
+      },
+      "partial": [
+        "Particles and the visualiser are drawn just above the desktop icons, not under them (macOS has no place for an app between the wallpaper and the icons); clicks still go through.",
+        "Music players: only Music and Spotify, while they are open (macOS 15.4 and later stop apps reading other players).",
+        "The visualiser needs a loopback sound device such as BlackHole; without one it stays hidden.",
+        "System widgets: no temperatures, fans, graphics card or Wi-Fi name.",
+        "The particles never thin out part way (windows half over the desktop, a busy graphics card): they run in full, or rest while the desktop is covered."
+      ]
+    }
+  },
+  "provider_labels": {
+    "forge_sysinfo": "read from /proc and /sys",
+    "psutil": "psutil, the cross-platform system library",
+    "mpris": "MPRIS over D-Bus (every Linux player)",
+    "gsmtc": "Windows' media controls (the players Windows shows in its volume pop-up)",
+    "applescript": "AppleScript, for Music and Spotify while they are open",
+    "cava": "cava",
+    "soundcard": "the sound card's loopback (soundcard library, numpy FFT)",
+    "notify_send": "notify-send",
+    "toast": "a Windows notification through PowerShell",
+    "osascript": "a macOS notification through osascript"
+  }
+}

@@ -1,0 +1,260 @@
+/* Forge home widgets (shared/forge_widgets.js). Material 3 by default: tonal
+   cards from the accent, 28 px corners, soft elevation; "glass" matches the
+   app tiles. */
+/* dark native controls (the options panel's selects) on any page, the
+   desktop's too, which has no page-wide colour-scheme of its own */
+.widgets { --widget-row: 64px; display: flex; flex-direction: column; gap: 10px; color-scheme: dark; }
+.widgets[hidden] { display: none; }
+.wg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
+.wg-dots { display: flex; gap: 8px; align-items: center; }
+.wg-dot { width: 10px; height: 10px; border-radius: 5px; border: 0; padding: 0; cursor: pointer;
+  background: rgb(255 255 255 / .3); transition: width .2s, background-color .2s; }
+.wg-dot.on { width: 26px; background: var(--accent); }
+.wg-tools { display: flex; gap: 8px; align-items: center; }
+.wg-btn, .wg-add { font: inherit; font-size: 13px; border-radius: 20px; padding: 6px 14px; cursor: pointer;
+  border: 1px solid rgb(255 255 255 / .18); background: rgb(20 22 28 / .6); color: #eef1f6; }
+.wg-addwrap { position: relative; }
+.wg-addlist { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: flex; flex-direction: column;
+  min-width: 190px; max-height: 60vh; overflow-y: auto; padding: 6px; border-radius: 16px;
+  border: 1px solid rgb(255 255 255 / .18); background: rgb(14 16 22); box-shadow: 0 12px 32px rgb(0 0 0 / .45); }
+.wg-addlist[hidden] { display: none; }
+.wg-addkind { font: inherit; font-size: 13px; text-align: left; padding: 7px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: #eef1f6; cursor: pointer; white-space: nowrap; }
+.wg-addkind:hover, .wg-addkind:focus-visible { background: rgb(255 255 255 / .1); outline: none; }
+.wg-opt select option { background: #14161c; color: #eef1f6; }
+.wg-btn.primary { background: var(--accent); color: var(--on-accent, #0b1220); border-color: transparent; font-weight: 600; }
+.wg-btn.ghost { opacity: .7; }
+.wg-btn.ghost:hover, .wg-btn.ghost:focus-visible { opacity: 1; }
+.wg-btn:disabled { opacity: .4; cursor: default; }
+.wg-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: var(--widget-row); gap: 12px; }
+.wg { position: relative; overflow: hidden; display: flex; min-width: 0; padding: 16px 18px; border-radius: 28px; color: #eef1f6;
+  background: color-mix(in srgb, var(--accent) 16%, rgb(22 24 30 / .92));
+  box-shadow: 0 1px 3px rgb(0 0 0 / .3), 0 6px 18px rgb(0 0 0 / .18); }
+/* The glass look is drawn, not a live blur: widgets come many at a time, and
+   WebKitGTK's cost climbs steeply with each blurred pane (13 ran at about
+   9 fps, 17 at 1; task 63, shared/glass/frosted.css). The second layer
+   thickens the user's Glass amount: .55 shows as .75, .3 as .62. */
+.widgets[data-look="glass"] .wg { border-radius: 18px; border: 1px solid rgb(255 255 255 / .12);
+  background: linear-gradient(rgb(18 20 26 / .45), rgb(18 20 26 / .45)), rgb(18 20 26 / var(--glass-pane, var(--glass, .55))); }
+.wg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.wg-big { font-size: clamp(28px, 3.2vw, 52px); font-weight: 300; letter-spacing: -.02em; line-height: 1; }
+.wg-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wg-sub { font-size: 13px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wg-meter { height: 6px; border-radius: 3px; overflow: hidden; background: rgb(255 255 255 / .14); }
+.wg-meter > i { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width .6s; }
+.wg-row { display: flex; gap: 8px; align-items: center; }
+.wg-row[hidden] { display: none; }
+.wg-round { width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; font-size: 15px; color: inherit; background: rgb(255 255 255 / .12); }
+.wg-round.primary { width: 48px; height: 48px; border-radius: 16px; background: var(--accent); color: var(--on-accent, #0b1220); }
+.wg-round[hidden] { display: none; }
+.wg-nowplaying .wg-body { flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; }
+.wg-art { flex: none; width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; font-size: 28px;
+  background: rgb(255 255 255 / .1) center / cover no-repeat; }
+.wg-np-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.wg-gauges { display: flex; justify-content: space-around; gap: 10px; }
+.wg-gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; opacity: .9; }
+.wg-gauge { --v: 0; position: relative; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; background: conic-gradient(var(--accent) calc(var(--v) * 1%), rgb(255 255 255 / .12) 0); }
+.wg-gauge.hot { background: conic-gradient(#ff8a80 calc(var(--v) * 1%), rgb(255 255 255 / .12) 0); }
+.wg-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgb(24 26 32); }
+.wg-gauge b { position: relative; }
+.wg-notes textarea { flex: 1; width: 100%; resize: none; border: 0; outline: 0; background: transparent; color: inherit;
+  font: inherit; font-size: 14px; line-height: 1.5; }
+.wg-breathe .wg-body { align-items: center; text-align: center; }
+.wg-orb { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / .6), var(--accent));
+  animation: wg-breathe calc(var(--breath, 4s) * 4) steps(48) infinite; }
+/* steps: 12 a second at the usual pace; a smooth breath kept the whole home
+   screen redrawing at 60 frames a second (task 56) */
+@keyframes wg-breathe { 0%, 100% { transform: scale(.6); } 25%, 50% { transform: scale(1); } 75% { transform: scale(.6); } }
+.wg-empty { grid-column: 1 / -1; padding: 18px; font-size: 14px; opacity: .65; }
+/* editing */
+.widgets.editing .wg { cursor: grab; outline: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: -2px; }
+.widgets.editing .wg-body { pointer-events: none; }
+.wg.moving { z-index: 2; opacity: .88; cursor: grabbing; }
+.wg-x { position: absolute; top: 8px; right: 8px; z-index: 1; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  cursor: pointer; background: rgb(0 0 0 / .55); color: #fff; }
+.wg-grip { position: absolute; right: 5px; bottom: 5px; width: 18px; height: 18px; cursor: nwse-resize;
+  border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent); border-radius: 0 0 10px 0; }
+/* Relax */
+#relax { position: fixed; inset: 0; z-index: 9000; display: none; place-items: center; align-content: center; gap: 22px; cursor: pointer;
+  color: #eef1f6; background: radial-gradient(circle at 50% 45%, rgb(12 14 22 / .78), rgb(4 5 9 / .96));
+  backdrop-filter: blur(24px) saturate(1.1); }
+#relax.on { display: grid; }
+.rx-ring { width: min(46vmin, 380px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.rx-ball { width: 100%; aspect-ratio: 1; border-radius: 50%; transform: scale(.45); transition: transform var(--breath, 4s) ease-in-out;
+  background: radial-gradient(circle at 38% 34%, rgb(255 255 255 / .55), color-mix(in srgb, var(--accent) 80%, transparent) 55%, transparent 72%); }
+#relax[data-phase="0"] .rx-ball, #relax[data-phase="1"] .rx-ball { transform: scale(1); }
+.rx-word { font-size: clamp(24px, 3vw, 40px); font-weight: 300; letter-spacing: .04em; }
+.rx-count { font-size: 18px; opacity: .6; }
+.rx-hint { position: fixed; left: 0; right: 0; bottom: 28px; text-align: center; font-size: 13px; opacity: .55; }
+body.relaxing #bar, body.relaxing #dock { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .wg-orb { animation: none; } .rx-ball { transition-duration: .01s; } }
+/* narrow windows: one widget per row, full width */
+@media (max-width: 760px) {
+  .wg-grid { grid-template-columns: minmax(0, 1fr); }
+  .wg { grid-column: 1 / -1 !important; grid-row: auto / span 2 !important; padding: 12px 14px; }
+  .wg-gauges { flex-wrap: wrap; gap: 6px; }
+  .wg-gauge { width: 44px; height: 44px; font-size: 11px; }
+  .wg-art { width: 56px; height: 56px; }
+  .wg-tools { flex-wrap: wrap; justify-content: flex-end; }
+}
+/* --- S25: per-card look and colour, the ⚙ options, and the new widgets --- */
+.wg[data-look="glass"] { border-radius: 18px; border: 1px solid rgb(255 255 255 / .12);
+  background: linear-gradient(rgb(18 20 26 / .45), rgb(18 20 26 / .45)), rgb(18 20 26 / var(--glass-pane, var(--glass, .55))); }
+/* v2: on the reduced power tier a thicker fill still (the glass look has
+   had no live blur since task 63) */
+.widgets.wg-lowpower .wg, .widgets.wg-lowpower .wg[data-look="glass"] { backdrop-filter: none; }
+.widgets.wg-lowpower[data-look="glass"] .wg, .widgets.wg-lowpower .wg[data-look="glass"] { background: rgb(18 20 26 / .86); }
+.wg[data-look="material"] { border-radius: 28px; border: 0; backdrop-filter: none;
+  background: color-mix(in srgb, var(--accent) 16%, rgb(22 24 30 / .92)); }
+.wg[data-look="clear"] { background: transparent; box-shadow: none; border: 0; backdrop-filter: none;
+  text-shadow: 0 1px 3px rgb(0 0 0 / .7); }
+.wg-cfg { position: absolute; top: 8px; right: 40px; z-index: 1; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  cursor: pointer; background: rgb(0 0 0 / .55); color: #fff; font-size: 13px; }
+.wg-opts { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  overflow-y: auto; cursor: default; background: rgb(14 16 22 / .96); border-radius: inherit; font-size: 12.5px; }
+.wg-opts-head { font-weight: 700; font-size: 13px; }
+.wg-opt { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: center; gap: 8px; margin: 0; color: inherit; }
+.wg-opt select, .wg-opt input[type="text"], .wg-opt input[type="number"], .wg-ask, .wg-alarm-add input {
+  box-sizing: border-box; min-width: 0; height: 28px; padding: 0 8px; border-radius: 9px; border: 1px solid rgb(255 255 255 / .18);
+  background: rgb(0 0 0 / .3); color: inherit; font: inherit; font-size: 12.5px; }
+.wg-opt input[type="checkbox"] { justify-self: start; width: 18px; height: 18px; accent-color: var(--accent); }
+.wg-colours { display: flex; gap: 6px; align-items: center; }
+.wg-colours input[type="color"] { width: 40px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.wg-colours .wg-btn { padding: 3px 10px; font-size: 12px; }
+.wg-opts > .wg-btn { align-self: flex-end; margin-top: auto; }
+.wg-ask { width: 100%; height: 34px; }
+.wg-round.small { width: 26px; height: 26px; font-size: 13px; flex: none; }
+.wg-row.wrap { flex-wrap: wrap; gap: 6px; }
+.wg-row.wrap .wg-btn { padding: 4px 10px; font-size: 12px; }
+/* weather */
+.wg-wx-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.wg-wx-icon { font-size: 40px; line-height: 1; flex: none; }
+.wg-weather .wg-body { gap: 4px; }
+.wg-weather .wg-big { font-size: clamp(26px, 2.6vw, 44px); }
+.wg-wx-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.wg-wx-strip { display: flex; gap: 6px; justify-content: space-between; margin-top: 4px; }
+.wg-wx-strip[hidden] { display: none; }
+.wg-wx-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11.5px; opacity: .9; min-width: 0; }
+.wg-wx-cell b { font-size: 18px; font-weight: 400; }
+/* media player */
+.wg-player .wg-body { flex-direction: row; align-items: center; justify-content: flex-start; gap: 16px; }
+.wg-art.big { width: auto; height: 100%; max-height: 150px; aspect-ratio: 1; font-size: 40px; border-radius: 20px; }
+.wg-art[hidden] { display: none; }
+.wg-seek { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 11.5px; opacity: .85;
+  font-variant-numeric: tabular-nums; }
+.wg-seek[hidden], .wg-vol[hidden] { display: none; }
+.wg-seek input, .wg-vol input { width: 100%; min-width: 0; accent-color: var(--accent); }
+.wg-vol { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.wg-player .wg-row .wg-btn { margin-left: auto; padding: 5px 12px; font-size: 12px; }
+/* calendar */
+.wg-calendar .wg-body { justify-content: flex-start; gap: 8px; }
+.wg-cal-head { display: flex; align-items: center; gap: 8px; }
+/* while editing, the ⚙ and × sit where the next-month arrow was */
+.widgets.editing .wg-calendar .wg-cal-head { margin-right: 60px; }
+.wg-cal-head .wg-title { flex: 1; text-align: center; font-size: 14.5px; }
+.wg-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; flex: 1; align-content: start; }
+.wg-cal-dow { text-align: center; font-size: 11px; opacity: .6; padding-bottom: 2px; }
+.wg-cal-day { position: relative; border: 0; border-radius: 10px; padding: 4px 0; font: inherit; font-size: 12.5px; color: inherit;
+  background: transparent; cursor: pointer; font-variant-numeric: tabular-nums; }
+.wg-cal-day:hover { background: rgb(255 255 255 / .1); }
+.wg-cal-day.today { background: var(--accent); color: var(--on-accent, #0b1220); font-weight: 700; }
+.wg-cal-day.on { outline: 2px solid var(--accent); outline-offset: -2px; }
+.wg-cal-day.marked::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 4px; height: 4px; margin-left: -2px;
+  border-radius: 50%; background: currentColor; }
+/* disks and bars */
+.wg-bars { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
+.wg-barrow { display: flex; flex-direction: column; gap: 3px; }
+.wg-barhead { font-size: 13px; font-weight: 600; }
+.wg-meter.hot > i { background: #ff8a80; }
+/* network */
+.wg-net { display: flex; gap: 16px; }
+.wg-net-n { display: flex; flex-direction: column; min-width: 0; }
+.wg-net-n small { font-size: 12px; opacity: .72; }
+.wg-net-n b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wg-spark { width: 100%; flex: 1; min-height: 24px; max-height: 70px; }
+.wg-spark[hidden] { display: none; }
+/* Jan */
+.wg-jan .wg-title.ok { color: color-mix(in srgb, #7ee2a8 70%, var(--accent)); }
+.wg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wg-chip { padding: 3px 10px; border-radius: 999px; font-size: 12px; background: color-mix(in srgb, var(--accent) 35%, transparent); }
+/* alarms and timers */
+.wg-alarms .wg-body, .wg-alarms { justify-content: flex-start; }
+div.wg-alarms { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; min-height: 0; flex: 1; }
+.wg-alarm { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; }
+.wg-alarm b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.wg-alarm input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.wg-alarm-add { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; }
+.wg-alarm-add .wg-btn { padding: 4px 12px; font-size: 12px; }
+#wg-ring { position: fixed; left: 50%; top: 20px; z-index: 9100; transform: translate(-50%, -140%); display: flex; align-items: center;
+  gap: 12px; padding: 12px 14px 12px 18px; border-radius: 999px; color: #fff; background: rgb(20 22 30 / .94);
+  box-shadow: 0 8px 30px rgb(0 0 0 / .45), 0 0 0 2px var(--accent); transition: transform .3s; font-size: 14px; }
+#wg-ring.on { transform: translate(-50%, 0); }
+#wg-ring b { font-size: 22px; animation: wg-shake .5s ease-in-out infinite; }
+@keyframes wg-shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+/* visualiser */
+.wg-visualiser { padding: 8px; }
+.wg-visualiser .wg-body { position: relative; }
+.wg-vis { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wg-vis-hint { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { #wg-ring b { animation: none; } }
+/* --- v2 (2026-10-07): smoother, richer cards ------------------------------
+   Everything that moves here moves by transform or opacity (the compositor's
+   work, no repaint). The gauges step once a second without a sweep: an
+   eased sweep on a registered property cost 7% of a core in the bench. */
+/* a soft top light on Material cards, and a lift under the pointer */
+.wg { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s; }
+.wg:not([data-look="clear"])::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgb(255 255 255 / .07), transparent 38%); box-shadow: inset 0 1px 0 rgb(255 255 255 / .08); }
+.widgets[data-look="glass"] .wg::after, .wg[data-look="glass"]::after { background: linear-gradient(160deg, rgb(255 255 255 / .1), transparent 45%); }
+.widgets:not(.editing) .wg:hover { transform: translateY(-2px); box-shadow: 0 2px 6px rgb(0 0 0 / .3), 0 14px 30px rgb(0 0 0 / .26); }
+.wg-meter > i { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent-2, var(--accent)) 70%, var(--accent))); }
+/* a page turn: the cards rise in, one after another */
+.wg-enter > .wg { animation: wg-in .38s cubic-bezier(.2, .8, .2, 1) both; }
+.wg-enter > .wg:nth-child(2) { animation-delay: .03s; } .wg-enter > .wg:nth-child(3) { animation-delay: .06s; }
+.wg-enter > .wg:nth-child(4) { animation-delay: .09s; } .wg-enter > .wg:nth-child(n+5) { animation-delay: .12s; }
+@keyframes wg-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+/* analogue clock */
+.wg-analogue { flex-direction: row !important; align-items: center; gap: 16px; }
+.wg-dial { position: relative; flex: none; height: 100%; max-height: 132px; aspect-ratio: 1; border-radius: 50%;
+  background: repeating-conic-gradient(from -1deg, rgb(255 255 255 / .55) 0 2deg, transparent 2deg 30deg) center / 100% 100%,
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, rgb(16 18 24)) 60%, rgb(255 255 255 / .05) 61%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); }
+.wg-dial::before { content: ""; position: absolute; inset: 9%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, rgb(18 20 26)), rgb(14 16 22)); }
+.wg-hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 3px; background: #eef1f6; }
+.wg-hand.h { width: 5px; height: 26%; margin-left: -2.5px; }
+.wg-hand.m { width: 3px; height: 36%; margin-left: -1.5px; }
+.wg-hand.s { width: 1.5px; height: 40%; margin-left: -.75px; background: var(--accent); }
+.wg-hand[hidden] { display: none; }
+.wg-dial > b { position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px; border-radius: 50%; background: var(--accent); }
+.wg-big.small { font-size: clamp(22px, 2vw, 34px); }
+/* activity */
+.wg-act-nums { display: flex; gap: 16px; flex-wrap: wrap; }
+.wg-act-nums .k-cpu b { color: color-mix(in srgb, var(--accent) 75%, #fff); }
+.wg-act-nums .k-gpu b { color: color-mix(in srgb, var(--accent-2, #ff9ad5) 75%, #fff); }
+.wg-act-nums .hot b { color: #ff8a80; }
+.wg-act-nums [hidden] { display: none; }
+.wg-spark.wg-act { max-height: none; }
+/* battery */
+.wg-battery-body { flex-direction: row !important; align-items: center; gap: 14px; }
+.wg-battery-body .wg-title, .wg-battery-body .wg-sub { white-space: normal; overflow-wrap: anywhere; }
+.wg-gauge.big { flex: none; width: auto; height: 100%; max-height: 112px; aspect-ratio: 1; font-size: 18px; font-weight: 600; }
+.wg-gauge.big::before { inset: 9px; }
+.wg-gauge.charging { background: conic-gradient(#7ee2a8 calc(var(--v) * 1%), rgb(255 255 255 / .12) 0); }
+@media (prefers-reduced-motion: reduce) { .wg { transition: none; } .wg-enter > .wg { animation: none; } }
+/* world clocks */
+.wg-zones { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
+.wg-zone { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: 10px; }
+.wg-zone .wg-sub { font-size: 13.5px; opacity: .9; }
+.wg-zone small { font-size: 11px; opacity: .55; font-variant-numeric: tabular-nums; }
+.wg-zone b { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+/* to do */
+.wg-todo-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.wg-todo-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 2px; font-size: 14px; cursor: pointer; }
+.wg-todo-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+.wg-todo-row span { overflow-wrap: anywhere; }
+.wg-todo-row.done span { opacity: .45; text-decoration: line-through; }
+.wg-todo-row .wg-round { opacity: 0; transition: opacity .15s; }
+.wg-todo-row:hover .wg-round, .wg-todo-row:focus-within .wg-round { opacity: .8; }
+/* moon */
+.wg-moon-disc { flex: none; height: 100%; max-height: 108px; aspect-ratio: 1; filter: drop-shadow(0 0 14px rgb(255 248 230 / .18)); }

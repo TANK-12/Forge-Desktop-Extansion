@@ -1,0 +1,7 @@
+{
+  "uuid": "forge-desktop-particles@forge",
+  "name": "Forge on the desktop",
+  "description": "Forge's particles, widgets and music visualiser on the desktop, behind every window, each with its own switch (the top bar button or Settings > On the desktop). Runs without Forge open. Made for Forge (~/Forge/desktop); nothing is downloaded.",
+  "shell-version": ["48", "49", "50", "51"],
+  "version": 3
+}

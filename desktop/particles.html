@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>forge-desktop-particles</title>
+<link rel="stylesheet" href="../shared/forge_widgets.css">
+<!-- B38: Forge's particles on the normal desktop. desktop/particles.py shows
+     this page in a see-through, click-through window that sits with the
+     desktop (the GNOME extension keeps it below every window; on Hyprland it
+     is a background layer). The particles are the hub's own, from
+     shared/forge_particles.js, following the same settings.
+     S25 (2026-09-28): the page also carries the desktop's widgets and a
+     visualiser (desktop/forge_desktop.js); each of the three has its own
+     switch under Settings > On the desktop, and the window only takes clicks
+     where a widget is. -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+  #particles, #visual { position: fixed; inset: 0; pointer-events: none; }
+  body { font-family: "Rubik", "Inter", system-ui, sans-serif; color: #eef1f6; }
+  /* the widgets sit on a 24-column grid over the whole screen, clear of the edges */
+  #widgets { position: fixed; inset: 44px 40px 56px 40px; overflow: hidden; }
+  #widgets:not(.editing) .wg-tools { display: none; }
+  #widgets:not(.editing) .wg-dots:not(:has(> :nth-child(2))) { display: none; }
+  #widgets:not(.editing) .wg-empty { display: none; }
+  body.editing { background: rgb(6 8 14 / .35); }
+  /* no live blur: one head per widget, and many blurred panes stall WebKit (task 63) */
+  #widgets.editing .wg-head { padding: 8px 12px; border-radius: 999px; background: rgb(12 14 20 / .86); }
+  /* bottom right: ⚙ opens the desktop's settings, ✎ edits its widgets */
+  #dk-bar { position: fixed; right: 18px; bottom: 16px; z-index: 5; display: flex; gap: 6px; }
+  #dk-edit, #dk-settings { padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgb(255 255 255 / .14); background: rgb(14 16 22 / .7); color: rgb(238 241 246 / .7); font: inherit; font-size: 12.5px;
+    transition: color .2s, border-color .2s; backdrop-filter: blur(8px); }
+  /* faint at rest by dimmer text, not a whole-button fade: a .45 fade left white on light grey over a bright wallpaper */
+  #dk-edit:hover, #dk-edit:focus-visible, #dk-settings:hover, #dk-settings:focus-visible { color: #eef1f6; border-color: rgb(255 255 255 / .3); }
+  #dk-edit[hidden], #dk-settings[hidden], body.editing #dk-bar { display: none; }
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<canvas id="visual"></canvas>
+<div id="widgets" class="widgets" hidden></div>
+<div id="dk-bar">
+  <button id="dk-settings" type="button" title="Settings for the particles, widgets and visualiser on the desktop" hidden>⚙</button>
+  <button id="dk-edit" type="button" title="Add, move and remove the desktop's widgets" hidden>✎ Widgets</button>
+</div>
+<script src="../hub/theme.js"></script>
+<script src="../shared/forge_particles.js"></script>
+<script src="../shared/forge_glass.js"></script>
+<script src="../shared/forge_framecap.js"></script>
+<script src="../shared/forge_power.js"></script>
+<script>
+  // Settings > Desktop particles over the home screen's settings: its own
+  // kind ("same" follows the home screen), amount and frame rate, with
+  // Speed and detail's battery values applied (shared/forge_power.js)
+  // plus easing off for the GPU's load and a flat battery (particles.py adds
+  // gpu_level, battery and this screen's shown share to the theme it passes on)
+  const now = (t) => ForgePower.apply(t, !!t.on_battery, { gpu: t.gpu_level, reason: t.gpu_reason, battery: t.battery, shown: t.shown });
+  const desktopLook = (t) => {
+    const p = now(t);
+    return Object.assign(p, {
+      // off when only the widgets or the visualiser are wanted on the desktop,
+      // and in the widgets' own window on Windows (the scenery behind the
+      // desktop icons draws them there: desktop/host/windows.py)
+      particles: t.desktop_particles === false || (window.FORGE_DESKTOP || {}).part === "widgets" ? "off"
+        : t.desktop_particle_kind && t.desktop_particle_kind !== "same" ? t.desktop_particle_kind : t.particles,
+      particle_amount: p.desktop_particle_amount ?? p.particle_amount,
+      particles_shown: true, // the hub's Alt+P is for the hub; the desktop has its own switch
+    });
+  };
+  const desktopFps = (t) => Math.min(Number(now(t).max_fps) || 60, Number(now(t).desktop_particle_fps) || 30);
+  let look = desktopLook(window.FORGE_THEME || {});
+  Particles.look = () => look;
+  Particles.showing = () => true;
+  ForgeFrameCap.set(desktopFps(window.FORGE_THEME || {}));
+  Particles.init();
+  Particles.apply();
+  // particles.py calls this with the new theme whenever hub/theme.js changes
+  window.forgeTheme = (next) => {
+    window.FORGE_THEME = next || {};
+    look = desktopLook(window.FORGE_THEME);
+    ForgeFrameCap.set(desktopFps(window.FORGE_THEME));
+    Particles.apply();
+  };
+</script>
+<script src="../shared/forge_visual.js"></script>
+<script src="../shared/forge_widgets.js"></script>
+<script src="forge_desktop.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge Desktop settings</title>
+<!--
+  Forge Desktop's own settings window on Windows and macOS (Relay task 130,
+  2026-10-09). It talks to the host over HTTP (desktop/host/server.py):
+  GET api/settings, POST api/set {key, value}, POST api/do {action}. Rows
+  come from forge_theme.settings_rows() for the groups in platforms.json,
+  minus what this OS or this machine cuts; the cuts are listed with their
+  reasons. Data goes in through textContent only.
+-->
+<link rel="stylesheet" href="../shared/forge.css">
+<script src="../hub/theme.js"></script>
+<style>
+  body { margin: 0; padding: 18px 22px 28px; font-size: 14px; }
+  h1 { font-size: 19px; margin: 0 0 2px; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 22px 0 6px; letter-spacing: 0.02em; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  [hidden] { display: none !important; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center;
+         padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .row .name { color: var(--text); }
+  .row .help { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+  .pair { display: flex; gap: 8px; align-items: center; }
+  .pair input[type="range"] { width: 150px; }
+  .pair input[type="number"] { width: 76px; }
+  .pair .unit { color: var(--muted); font-size: 12px; min-width: 34px; }
+  select { min-width: 170px; }
+  .switch { width: 18px; height: 18px; }
+  .cuts { margin-top: 18px; padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); }
+  .cuts p { margin: 4px 0; color: var(--muted); font-size: 12.5px; }
+  .cuts b { color: var(--text); font-weight: 600; }
+  #status { min-height: 18px; color: var(--muted); font-size: 12px; margin-top: 10px; }
+  #status.bad { color: #ff8a8a; }
+</style>
+</head>
+<body>
+<h1>Forge Desktop</h1>
+<p class="sub" id="os"></p>
+<div class="bar">
+  <button class="btn btn-primary" id="edit" type="button">Edit widgets</button>
+  <label class="bar" id="login-row" hidden><input class="switch" type="checkbox" id="login"> Start when I log in</label>
+  <button class="btn" id="quit" type="button">Quit Forge Desktop</button>
+</div>
+<div id="status"></div>
+<div id="groups"></div>
+<div class="cuts" id="cuts" hidden></div>
+<script>
+"use strict";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const status = (text, bad) => {
+    $("status").textContent = text || "";
+    $("status").className = bad ? "bad" : "";
+  };
+  const el = (tag, props, kids) => {
+    const node = document.createElement(tag);
+    Object.assign(node, props || {});
+    for (const kid of kids || []) node.append(kid);
+    return node;
+  };
+
+  async function call(path, body) {
+    const init = body === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    };
+    const r = await fetch("../" + path, init);
+    if (!r.ok) throw new Error(`${path}: ${r.status}`);
+    return r.json();
+  }
+
+  if (window.FORGE_THEME && window.FORGE_THEME.accent) {
+    document.documentElement.style.setProperty("--accent", window.FORGE_THEME.accent);
+  }
+
+  const timers = {};
+  function save(key, value, show) {
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(async () => {
+      try {
+        const out = await call("api/set", { key, value });
+        if (out.error) return status(out.error, true);
+        show(out[key]);
+        status("Saved.");
+      } catch (e) {
+        status(`Not saved: ${e.message}`, true);
+      }
+    }, 200);
+  }
+
+  function control(row) {
+    const id = "s-" + row.key;
+    if (row.kind === "bool") {
+      const box = el("input", { type: "checkbox", id, className: "switch", checked: row.value === true });
+      box.addEventListener("change", () => save(row.key, box.checked, (v) => (box.checked = v === true)));
+      return box;
+    }
+    if (row.kind === "choice") {
+      const pick = el("select", { id });
+      for (const choice of row.choices || []) {
+        const label = (row.labels && row.labels[choice]) || String(choice);
+        pick.append(el("option", { value: String(choice), textContent: label, selected: choice === row.value }));
+      }
+      pick.addEventListener("change", () => save(row.key, pick.value, (v) => (pick.value = String(v))));
+      return pick;
+    }
+    // a number: a slider paired with a number box
+    const step = row.step || (row.kind === "int" ? 1 : 0.05);
+    const range = el("input", { type: "range", min: row.min, max: row.max, step, value: row.value, id });
+    const box = el("input", { type: "number", min: row.min, max: row.max, step, value: row.value });
+    range.setAttribute("aria-label", row.label);
+    box.setAttribute("aria-label", row.label + " (number)");
+    const show = (v) => { range.value = v; box.value = v; };
+    range.addEventListener("input", () => { box.value = range.value; save(row.key, Number(range.value), show); });
+    box.addEventListener("change", () => {
+      if (box.value === "" || Number.isNaN(Number(box.value))) return show(range.value);
+      range.value = box.value;
+      save(row.key, Number(box.value), show);
+    });
+    return el("div", { className: "pair" }, [range, box, el("span", { className: "unit", textContent: row.unit || "" })]);
+  }
+
+  function draw(info) {
+    $("os").textContent = `On ${info.caps.label}. Changes apply at once.`;
+    const groups = $("groups");
+    groups.replaceChildren();
+    for (const group of info.groups) {
+      groups.append(el("h2", { textContent: group.title }));
+      for (const row of group.rows) {
+        const input = control(row);
+        const name = el("label", { className: "name", textContent: row.label, htmlFor: "s-" + row.key });
+        const line = el("div", { className: "row" }, [name, input]);
+        if (row.help) line.append(el("div", { className: "help", textContent: row.help }));
+        groups.append(line);
+      }
+    }
+    const cuts = Object.entries(info.caps.cut || {});
+    const labels = info.caps.cut_labels || {};
+    $("cuts").hidden = !cuts.length;
+    $("cuts").replaceChildren(el("p", { textContent: "Not on this computer:" }),
+      ...cuts.map(([name, why]) => el("p", {}, [el("b", { textContent: labels[name] || name }), `: ${why}`])));
+    const actions = info.actions || ["edit", "quit"];
+    $("edit").hidden = !actions.includes("edit");
+    $("quit").hidden = !actions.includes("quit");
+    $("login-row").hidden = info.login === null || info.login === undefined;
+    $("login").checked = info.login === true;
+  }
+
+  async function load() {
+    try {
+      draw(await call("api/settings"));
+    } catch (e) {
+      status(`Forge Desktop is not answering (${e.message}).`, true);
+    }
+  }
+
+  async function act(action, done) {
+    try {
+      const out = await call("api/do", { action });
+      if (out.error) return status(out.error, true);
+      status(done);
+      return out;
+    } catch (e) {
+      status(`${action}: ${e.message}`, true);
+    }
+  }
+
+  $("edit").addEventListener("click", () => act("edit", "Editing: drag the widgets on the main screen, then press Done there."));
+  $("quit").addEventListener("click", () => act("quit", "Forge Desktop is closing."));
+  $("login").addEventListener("change", async () => {
+    const out = await act($("login").checked ? "login_on" : "login_off", "Saved.");
+    if (out && "login" in out) $("login").checked = out.login === true;
+  });
+  load();
+})();
+</script>
+</body>
+</html>
